@@ -1,0 +1,4 @@
+-- Intentionally empty. Never create production passwords or insert synthetic
+-- issues into a production organization. The browser demo uses isolated fixtures.
+-- Provision the first organization and authorized profile with a trusted operator
+-- after the target project and authentication configuration have been approved.

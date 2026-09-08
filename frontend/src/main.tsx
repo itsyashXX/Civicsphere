@@ -1,0 +1,26 @@
+import React,{lazy,Suspense} from 'react';
+import ReactDOM from 'react-dom/client';
+import {BrowserRouter,Routes,Route,Navigate,Outlet} from 'react-router-dom';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {useTranslation} from 'react-i18next';
+import './i18n';
+import './styles.css';
+import {AuthProvider,useAuth} from './features/auth/Auth';
+import {Boundary,Loading,ErrorState} from './components/ui';
+import {Home,PublicPage} from './pages/Public';
+import {adminRoles,permitted} from './types/domain';
+import type {Role} from './types/domain';
+const Shell=lazy(()=>import('./app/Shell'));
+const Dashboard=lazy(()=>import('./features/dashboard/Dashboard'));
+const IssueList=lazy(()=>import('./features/issues/IssueList'));
+const IssueDetail=lazy(()=>import('./features/issues/IssueDetail'));
+const Login=lazy(()=>import('./pages/Login'));
+const MapPage=lazy(()=>import('./pages/Workspaces').then(m=>({default:m.MapPage})));
+const Datasets=lazy(()=>import('./pages/Workspaces').then(m=>({default:m.Datasets})));
+const Admin=lazy(()=>import('./pages/Workspaces').then(m=>({default:m.Admin})));
+const Help=lazy(()=>import('./pages/Workspaces').then(m=>({default:m.Help})));
+const Planned=lazy(()=>import('./pages/Workspaces').then(m=>({default:m.Planned})));
+const queryClient=new QueryClient({defaultOptions:{queries:{retry:1,staleTime:30000}}});
+function Guard({roles}:{roles?:Role[]}){const {session,profile,loading}=useAuth();const {t}=useTranslation();if(loading)return <Loading/>;if(!session)return <Navigate to="/login" replace/>;if(!profile?.is_active||profile.role==='PUBLIC_USER'||(roles&&!permitted(profile,roles)))return <ErrorState message={t('accessDenied')}/>;return <Outlet/>;}
+function routes(demo=false){return <><Route path="dashboard" element={<Dashboard/>}/><Route path="map" element={<MapPage/>}/><Route path="issues" element={<IssueList/>}/><Route path="issues/:id" element={<IssueDetail/>}/><Route path="reviews" element={<IssueList key="reviews"/>}/><Route path="datasets" element={<Datasets/>}/><Route path="help" element={<Help/>}/>{demo?<Route path="admin/*" element={<Admin/>}/>:<Route element={<Guard roles={adminRoles}/>}><Route path="admin/*" element={<Admin/>}/></Route>}{['tasks','risk','analytics','reports','alerts','settings','executive','jobs','ai','change-detection','hotspots','complaints','notifications','audit','field-verification','departments','users'].map(p=><Route key={p} path={p} element={<Planned/>}/>)}</>;}
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={queryClient}><AuthProvider><BrowserRouter><Boundary><Suspense fallback={<Loading/>}><Routes><Route path="/" element={<Home/>}/>{['about','features','solutions','platform','contact','privacy','terms','accessibility','map-preview'].map(p=><Route key={p} path={p} element={<PublicPage/>}/>)}{['login','forgot-password','reset-password'].map(p=><Route key={p} path={p} element={<Login/>}/>)}<Route path="/demo" element={<Shell/>}><Route index element={<Navigate to="dashboard" replace/>}/>{routes(true)}</Route><Route element={<Guard/>}><Route element={<Shell/>}>{routes()}</Route></Route><Route path="*" element={<Navigate to="/" replace/>}/></Routes></Suspense></Boundary></BrowserRouter></AuthProvider></QueryClientProvider></React.StrictMode>);

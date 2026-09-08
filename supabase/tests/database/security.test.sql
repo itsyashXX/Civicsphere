@@ -1,0 +1,11 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select extensions.plan(6);
+select extensions.ok((select bool_and(relrowsecurity) from pg_class where oid in ('public.issues'::regclass,'public.profiles'::regclass,'public.datasets'::regclass,'public.departments'::regclass,'public.organizations'::regclass,'public.audit_logs'::regclass)),'RLS is enabled on application tables');
+select extensions.ok(not has_table_privilege('authenticated','public.profiles','UPDATE'),'users cannot edit roles');
+select extensions.ok(not has_table_privilege('authenticated','public.issues','UPDATE'),'issue transitions require commands');
+select extensions.ok(not has_table_privilege('authenticated','public.audit_logs','INSERT'),'clients cannot forge audit records');
+select extensions.ok(not has_function_privilege('anon','public.review_issue(uuid,public.issue_status,text,uuid)','EXECUTE'),'anonymous users cannot invoke review');
+select extensions.ok(not has_table_privilege('anon','public.issues','SELECT'),'public cannot access internal issues');
+select * from extensions.finish();
+rollback;
